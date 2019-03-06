@@ -10,7 +10,9 @@
 
 
 // Debug flag
+#ifdef _DEBUG
 #define UDD_DEBUG_ON
+#endif
 
 
 // Logging
@@ -40,12 +42,24 @@ private:
     };
 
     template <class T>
-    static void Output(T&& arg)
+    static void Output(const T& arg)
     {
         if (mode_ == Mode::None) return;
         if (ss_.good())
         {
-            ss_ << std::forward<T>(arg);
+            ss_ << arg;
+        }
+    }
+
+    static void Output(const WCHAR* arg)
+    {
+        if (mode_ == Mode::None) return;
+        if (ss_.good())
+        {
+            char buf[256];
+            size_t size;
+            wcstombs_s(&size, buf, arg, 256);
+            ss_ << buf;
         }
     }
 
@@ -89,10 +103,10 @@ private:
     }
 
     template <class Arg, class... RestArgs>
-    static void _Log(Level level, Arg&& arg, RestArgs&&... restArgs)
+    static void _Log(Level level, const Arg& arg, const RestArgs&... restArgs)
     {
-        Output(std::forward<Arg>(arg));
-        _Log(level, std::forward<RestArgs>(restArgs)...);
+        Output(arg);
+        _Log(level, restArgs...);
     }
 
     static void _Log(Level level)
@@ -144,16 +158,25 @@ private:
 };
 
 
+class DebugFunctionScopedTimer : public ScopedTimer
+{
+public:
+    explicit DebugFunctionScopedTimer(const char* name);
+
+private:
+    static unsigned int currentId;
+    const char* const name_;
+    const unsigned int id_;
+};
+
+
 #ifdef UDD_DEBUG_ON
 #define UDD_FUNCTION_SCOPE_TIMER \
-    ScopedTimer _timer_##__COUNTER__([](std::chrono::microseconds us) \
-    { \
-        Debug::Log(__FUNCTION__, "@", __FILE__, ":", __LINE__, " => ", us.count(), " [us]"); \
-    });
+    DebugFunctionScopedTimer _timer_##__COUNTER__(__FUNCTION__);
 #define UDD_SCOPE_TIMER(Name) \
     ScopedTimer _timer_##__COUNTER__([](std::chrono::microseconds us) \
     { \
-        Debug::Log(#Name, " => ", us.count(), " [us]"); \
+        Debug::Log(#Name, " : ", us.count(), " [us]"); \
     });
 #else
 #define UDD_FUNCTION_SCOPE_TIMER

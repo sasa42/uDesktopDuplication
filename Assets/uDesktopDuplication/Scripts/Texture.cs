@@ -3,6 +3,7 @@
 namespace uDesktopDuplication
 {
 
+[RequireComponent(typeof(Renderer))]
 [AddComponentMenu("uDesktopDuplication/Texture")] 
 public class Texture : MonoBehaviour
 {
@@ -240,6 +241,13 @@ public class Texture : MonoBehaviour
         }
     }
 
+    int clipPositionScaleKey_;
+
+    void Awake()
+    {
+        clipPositionScaleKey_ = Shader.PropertyToID("_ClipPositionScale");
+    }
+
     void OnEnable()
     {
         if (monitor == null) {
@@ -271,8 +279,7 @@ public class Texture : MonoBehaviour
 
     void RequireUpdate()
     {
-        if (monitor != null)
-        {
+        if (monitor != null) {
             monitor.shouldBeUpdated = true;
         }
     }
@@ -283,7 +290,6 @@ public class Texture : MonoBehaviour
         monitor = Manager.GetMonitor(lastMonitorId_);
     }
 
-    int clipPositionScaleKey_ = Shader.PropertyToID("_ClipPositionScale");
     void UpdateMaterial()
     {
         width = transform.localScale.x;
@@ -409,6 +415,19 @@ public class Texture : MonoBehaviour
         // Calculate coordinates.
         var coordX = toAngle / halfWidthAngle * 0.5f;
         var coordY = ly / halfHeight * 0.5f;
+
+        // Zoom
+        if (useClip) {
+            coordX = clipPos.x + (0.5f + coordX) * clipScale.x;
+            coordX -= Mathf.Floor(coordX);
+            coordX -= 0.5f;
+
+            coordY = (1f - clipPos.y) + (coordY - 0.5f) * clipScale.y;
+            coordY -= Mathf.Floor(coordY);
+            coordY -= 0.5f;
+        }
+
+        // Desktop position
         int desktopX = monitor.left + (int)((coordX + 0.5f) * monitor.width);
         int desktopY = monitor.top + (int)((0.5f - coordY) * monitor.height);
 

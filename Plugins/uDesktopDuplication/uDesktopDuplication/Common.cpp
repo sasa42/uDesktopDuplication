@@ -17,6 +17,29 @@ extern std::unique_ptr<MonitorManager> g_manager;
 extern std::queue<Message> g_messages;
 
 
+void OutputWindowsInformation()
+{
+	const auto hModule = ::LoadLibrary(TEXT("ntdll.dll"));
+	if (!hModule) return;
+
+    ScopedReleaser freeModule([&] { ::FreeLibrary(hModule); });
+
+	if (const auto address = ::GetProcAddress(hModule, "RtlGetVersion"))
+	{
+		using RtlGetVersionType = NTSTATUS(WINAPI *)(OSVERSIONINFOEXW*);
+		const auto RtlGetVersion = reinterpret_cast<RtlGetVersionType>(address);
+
+		OSVERSIONINFOEXW os = { sizeof(os) };
+		if (!FAILED(RtlGetVersion(&os)))
+		{
+			Debug::Log("OS Version    : ", os.dwMajorVersion, ".", os.dwMinorVersion);
+			Debug::Log("Build Number  : ", os.dwBuildNumber);
+			Debug::Log("Service Pack  : ", os.szCSDVersion);
+		}
+	}
+}
+
+
 IUnityInterfaces* GetUnity()
 {
     return g_unity;
@@ -37,7 +60,9 @@ const std::unique_ptr<MonitorManager>& GetMonitorManager()
 
 LUID GetUnityAdapterLuid()
 {
-    const auto device = GetUnity()->Get<IUnityGraphicsD3D11>()->GetDevice();
+    UDD_FUNCTION_SCOPE_TIMER
+
+    const auto device = GetDevice();
 
     Microsoft::WRL::ComPtr<IDXGIDevice1> dxgiDevice;
     if (FAILED(device->QueryInterface(IID_PPV_ARGS(&dxgiDevice)))){

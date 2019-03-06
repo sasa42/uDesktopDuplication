@@ -172,7 +172,7 @@ public class Monitor
 
     public bool isCursorVisible
     { 
-        get { return Lib.IsCursorVisible(id); }
+        get { return Lib.IsCursorVisible(); }
     }
 
     public int cursorX
@@ -238,6 +238,11 @@ public class Monitor
         get { return Lib.GetDirtyRects(id); }
     }
 
+    public System.IntPtr buffer
+    {
+        get { return Lib.GetBuffer(id); }
+    }
+
     public bool hasBeenUpdated
     {
         get { return Lib.HasBeenUpdated(id); }
@@ -296,7 +301,7 @@ public class Monitor
 
     public void GetCursorTexture(System.IntPtr ptr)
     {
-        Lib.GetCursorTexture(id, ptr);
+        Lib.GetCursorTexture(ptr);
     }
 
     public void CreateTextureIfNeeded()
